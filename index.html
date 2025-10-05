@@ -1,5 +1,277 @@
 <!doctype html>
 <html lang="id">
-<head><meta charset="utf-8"><title>Premium App</title></head>
-<body><h1>Ready Premium Apps</h1><p>Deploy ke Vercel berhasil!</p></body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ready Premium Apps — Order via Modal</title>
+  <meta name="description" content="Katalog Ready Premium Apps. Klik Pilih untuk buka form popup fullscreen, kirim order otomatis ke WhatsApp." />
+  <style>
+    :root{--bg:#f4f8ff;--card:#ffffff;--muted:#6b7280;--primary:#0056d6;--accent:#7e57c2;--glass: rgba(255,255,255,0.6)}
+    *{box-sizing:border-box;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    body{margin:0;background:linear-gradient(180deg,#f4f8ff,#e9f0ff);color:#08203a}
+    .wrap{max-width:1200px;margin:28px auto;padding:20px}
+    header{display:flex;gap:14px;align-items:center}
+    .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px}
+    h1{margin:0;font-size:20px}
+    p.lead{margin:6px 0 0;color:var(--muted)}
+
+    .category{margin-top:28px}
+    .category-header{display:flex;justify-content:space-between;align-items:center}
+    .category-title{display:flex;gap:12px;align-items:center}
+    .category-title h2{margin:0;color:var(--primary);font-size:18px}
+    .category-desc{color:var(--muted);font-size:13px}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:12px}
+    .card{background:var(--card);border-radius:14px;padding:16px;border:1px solid rgba(2,6,23,0.04);box-shadow:0 10px 30px rgba(2,6,23,0.06);display:flex;flex-direction:column;align-items:center;text-align:center;transition:transform .18s ease, box-shadow .18s ease}
+    .card:hover{transform:translateY(-6px);box-shadow:0 18px 36px rgba(2,6,23,0.09)}
+    .card img{width:64px;height:64px;object-fit:contain;margin-bottom:10px}
+    .card h3{margin:0;font-size:15px}
+    .price{margin-top:8px;font-weight:700;color:var(--primary)}
+    .pick{margin-top:12px;background:linear-gradient(90deg,var(--primary),#376ad6);color:white;padding:10px 14px;border-radius:10px;border:none;cursor:pointer}
+
+    footer{margin-top:40px;text-align:center;color:var(--muted);font-size:14px}
+
+    /* Modal fullscreen */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(3,10,30,0.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:32px;z-index:1200}
+    .modal{width:100%;max-width:720px;background:linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95));border-radius:16px;padding:22px;box-shadow:0 30px 80px rgba(2,6,23,0.6);transform:translateY(20px);opacity:0;transition:opacity .22s ease, transform .22s ease}
+    .modal.show{opacity:1;transform:none}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .modal h3{margin:0;color:var(--primary)}
+    .close-btn{background:transparent;border:none;font-size:18px;cursor:pointer;color:#0b1726}
+
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+    label{font-size:13px;color:#073065;font-weight:700}
+    input,select,textarea{padding:10px;border-radius:8px;border:1px solid #e6eef8;font-size:14px}
+    textarea{resize:vertical}
+    .full{grid-column:1/3}
+    .submit-btn{margin-top:14px;background:linear-gradient(90deg,var(--primary),var(--accent));color:#fff;border:none;padding:12px;border-radius:10px;font-weight:800;cursor:pointer;width:100%}
+
+    @media (max-width:720px){.modal{padding:16px;margin:12px}.form-row{grid-template-columns:1fr}.full{grid-column:1/2}.card img{width:56px;height:56px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">RS</div>
+      <div>
+        <h1>📢 READY PREMIUM APPS — Renz Store</h1>
+        <p class="lead">Klik "Pilih" pada produk untuk membuka formulir pemesanan (popup fullscreen). Pesanan akan dikirim ke WhatsApp.</p>
+      </div>
+    </header>
+
+    <div id="content"></div>
+
+    <footer>👑 RENZ STORE — Murah • Aman • Lengkap • Admin Responsif</footer>
+  </div>
+
+  <!-- Modal (fullscreen backdrop) -->
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div id="modal" class="modal" role="document">
+      <div class="modal-header">
+        <h3 id="modalTitle">Order Produk</h3>
+        <button id="modalClose" class="close-btn" aria-label="Tutup">✕</button>
+      </div>
+
+      <form id="modalForm" onsubmit="return false;">
+        <div class="form-row">
+          <div>
+            <label for="prodName">Produk</label>
+            <input id="prodName" name="produk" type="text" readonly />
+          </div>
+          <div>
+            <label for="prodCat">Kategori</label>
+            <input id="prodCat" name="kategori" type="text" readonly />
+          </div>
+
+          <div>
+            <label for="custName">Nama Lengkap</label>
+            <input id="custName" name="nama" type="text" placeholder="Contoh: Andi" required />
+          </div>
+          <div>
+            <label for="custWa">Nomor WhatsApp</label>
+            <input id="custWa" name="kontak" type="text" placeholder="628xxxxxxxx" required />
+          </div>
+
+          <div>
+            <label for="metodePay">Metode Pembayaran</label>
+            <select id="metodePay" name="metode" required>
+              <option value="">-- Pilih Metode --</option>
+              <option>Dana</option>
+              <option>Gopay</option>
+              <option>QRIS</option>
+              <option>Transfer Bank</option>
+              <option>OVO</option>
+            </select>
+          </div>
+
+          <div class="full">
+            <label for="note">Catatan (opsional)</label>
+            <textarea id="note" name="catatan" rows="3" placeholder="Contoh: tolong kirim cepat, atau butuh invoice"></textarea>
+          </div>
+        </div>
+
+        <button id="sendWa" class="submit-btn" type="submit">Kirim ke WhatsApp</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const WA_NUMBER = '6287820629242';
+
+    // product data (full list) - trimmed logos where missing
+    const PRODUCTS = {
+      'STREAMING & MUSIK': [
+          ['NETFLIX PRIVATE 1 MONTH','140K','https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg'],
+          ['NETFLIX PRIVATE 1 WEEK','45K','https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg'],
+          ['NETFLIX SEMI PRIVATE 1 MONTH','40K','https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg'],
+          ['NETFLIX SHARING 1P1U 1 MONTH','35K','https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg'],
+          ['NETFLIX SHARING 1P1U 1 WEEK','20K','https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg'],
+          ['NETFLIX SHARING 1P1U 3 DAY','10K','https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg'],
+          ['NETFLIX SHARING 1P2U 1 MONTH','23K','https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg'],
+          ['YOUTUBE FAMHEAD 1 MONTH','8K','https://upload.wikimedia.org/wikipedia/commons/4/4f/Youtube-logo-full_color.png'],
+          ['YOUTUBE INDIVIDUAL 3 MONTH','25K','https://upload.wikimedia.org/wikipedia/commons/4/4f/Youtube-logo-full_color.png'],
+          ['APPLE MUSIC FAMHEAD 1 MONTH','10K','https://upload.wikimedia.org/wikipedia/commons/d/df/Apple_Music_logo.svg'],
+          ['APPLE MUSIC INDIVIDUAL 1 MONTH','10K','https://upload.wikimedia.org/wikipedia/commons/d/df/Apple_Music_logo.svg'],
+          ['APPLE TV PRIVATE PAID 1 MONTH','25K','https://upload.wikimedia.org/wikipedia/commons/1/1e/Apple_TV_logo.png'],
+          ['BSTATION PRIVATE 1 MONTH','32K','https://bstation.id/static/media/logo.8c6b0f5c.svg'],
+          ['CATCHPLAY+ PRIVATE 1 MONTH','20K','https://www.catchplay.com/themes/catchplay_2018/dist/images/logo-catchplay.svg'],
+          ['CRUNCHYROLL MEGAFAN PRIV 7 DAY','7K','https://upload.wikimedia.org/wikipedia/commons/5/57/Crunchyroll_logo.svg'],
+          ['DISNEY PREMIUM PRIVATE 1 MONTH','75K','https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg'],
+          ['HBO MAX PRIV 1 MONTH STANDARD','67K','https://upload.wikimedia.org/wikipedia/commons/1/17/HBO_Max_Logo.svg'],
+          ['IQIYI PRIVATE STANDARD 1 MONTH','30K','https://upload.wikimedia.org/wikipedia/commons/4/4b/IQIYI_logo.svg'],
+          ['LOKLOK BASIC PRIVATE 1 MONTH','55K','https://loklok.com/static/images/logo.png'],
+          ['MOLA TV PRIVATE 1 MONTH','75K','https://upload.wikimedia.org/wikipedia/en/8/8e/Mola_TV_logo.png'],
+          ['PRIME VIDEO PRIVATE 1 MONTH','14K','https://upload.wikimedia.org/wikipedia/commons/f/f1/Amazon_Prime_Video_logo.svg'],
+          ['SPOTIFY INDPLAN 3 MONTH','35K','https://upload.wikimedia.org/wikipedia/commons/2/26/Spotify_logo_with_text.svg'],
+          ['VIDIO PRIVATE 1 MONTH ALL DEVICE','45K','https://upload.wikimedia.org/wikipedia/commons/9/99/Vidio_logo.png'],
+          ['VIKI PASS PRIVATE 7 DAY','8K','https://upload.wikimedia.org/wikipedia/commons/1/1a/Viki_logo.png'],
+          ['VIU PRIVATE 1 MONTH','3K','https://upload.wikimedia.org/wikipedia/commons/0/07/VIU_logo.png'],
+          ['WETV PRIVATE 1 MONTH','20K','https://upload.wikimedia.org/wikipedia/commons/7/7b/WeTV_logo.svg']
+      ],
+      'EDITING & DESAIN': [
+          ['ALIGHT MOTION PRIVATE 1 YEAR','10K','https://upload.wikimedia.org/wikipedia/commons/4/48/Alight_Motion_Logo.svg'],
+          ['CANVA PRO OWNER 1 BULAN','7K','https://upload.wikimedia.org/wikipedia/commons/0/0a/Canva_Logo.png'],
+          ['CANVA MEMBER 1 BULAN','3K','https://upload.wikimedia.org/wikipedia/commons/0/0a/Canva_Logo.png'],
+          ['CAPCUT PRIVATE 1 MONTH FULL GAR','15K','https://upload.wikimedia.org/wikipedia/commons/8/88/CapCut_logo.svg'],
+          ['PICSART PRO PRIVATE 1 MONTH','17K','https://upload.wikimedia.org/wikipedia/commons/5/5b/Picsart_logo.png']
+      ],
+      'EDUCATION & TOOL': [
+          ['CHATGPT PRIVATE PLAN PLUS 1 MONTH','60K','https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg'],
+          ['DEEPL PRIVATE 1 MONTH','25K','https://upload.wikimedia.org/wikipedia/commons/2/2c/DeepL_logo.svg'],
+          ['GRAMMARLY PRIVATE 1 MONTH','30K','https://upload.wikimedia.org/wikipedia/commons/8/83/Grammarly_logo.svg'],
+          ['DUOLINGO FAMILY HEAD 1 MONTH','10K','https://upload.wikimedia.org/wikipedia/commons/7/7b/Duolingo_logo.png'],
+          ['MS365 FAMILY HEAD 1 MONTH','10K','https://upload.wikimedia.org/wikipedia/commons/5/5f/Microsoft_Office_2019_logo.svg']
+      ],
+      'VPN': [
+          ['EXPRESS VPN PRIVATE 1 MONTH','8K','https://upload.wikimedia.org/wikipedia/commons/3/3c/ExpressVPN_logo.svg'],
+          ['SURFSHARK VPN 3 BULAN','19K','https://upload.wikimedia.org/wikipedia/commons/2/24/Surfshark_Logo.svg'],
+          ['AVIRA VPN PRIVATE 3 BULAN','15K','https://upload.wikimedia.org/wikipedia/commons/a/a8/Avira_Logo_2016.svg'],
+          ['HMA VPN PRIVATE 1 BULAN','7K','https://upload.wikimedia.org/wikipedia/commons/8/86/HMA_logo.png']
+      ],
+      'OTHER': [
+          ['AKUN GOOGLEPLAY FOR TRIAL','4K','https://upload.wikimedia.org/wikipedia/commons/3/31/Google_Play_2022_logo.svg'],
+          ['KODE REDEEM YOUTUBE PREM 2 BULAN','3K','https://upload.wikimedia.org/wikipedia/commons/d/d7/YouTube_Premium_logo.svg'],
+          ['VOUCHER DISNEY PREMIUM 1 MONTH','50K','https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg']
+      ]
+    };
+
+    // render content
+    const content = document.getElementById('content');
+    Object.keys(PRODUCTS).forEach((cat, idx) => {
+      const section = document.createElement('section'); section.className='category';
+      const header = document.createElement('div'); header.className='category-header';
+      const titleWrap = document.createElement('div'); titleWrap.className='category-title';
+      const h2 = document.createElement('h2'); h2.textContent = cat; titleWrap.appendChild(h2);
+      const desc = document.createElement('div'); desc.className='category-desc small'; desc.textContent='Klik "Pilih" untuk buka form order (popup).';
+      header.appendChild(titleWrap); header.appendChild(desc); section.appendChild(header);
+
+      const grid = document.createElement('div'); grid.className='grid';
+      PRODUCTS[cat].forEach(p=>{
+        const [name, price, logo] = p;
+        const card = document.createElement('div'); card.className='card';
+        const img = document.createElement('img'); img.src=logo; img.alt=name; img.onerror=function(){this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" fill="%23f1f5f9"/><text x="50%" y="54%" font-size="10" text-anchor="middle" fill="%23838f9a">LOGO</text></svg>'};
+        const h3 = document.createElement('h3'); h3.textContent = name;
+        const pr = document.createElement('div'); pr.className='price'; pr.textContent = price;
+        const btn = document.createElement('button'); btn.className='pick'; btn.textContent='Pilih';
+        btn.addEventListener('click', ()=> openModal({produk:name, kategori:cat, harga:price}));
+        card.appendChild(img); card.appendChild(h3); card.appendChild(pr); card.appendChild(btn);
+        grid.appendChild(card);
+      });
+      section.appendChild(grid);
+      content.appendChild(section);
+    });
+
+    // modal controls
+    const backdrop = document.getElementById('modalBackdrop');
+    const modal = document.getElementById('modal');
+    const modalClose = document.getElementById('modalClose');
+    const prodName = document.getElementById('prodName');
+    const prodCat = document.getElementById('prodCat');
+    const custName = document.getElementById('custName');
+    const custWa = document.getElementById('custWa');
+    const metodePay = document.getElementById('metodePay');
+    const note = document.getElementById('note');
+    const sendWa = document.getElementById('sendWa');
+
+    function openModal({produk,kategori,harga}){
+      prodName.value = produk + ' - ' + harga;
+      prodCat.value = kategori;
+      custName.value = '';
+      custWa.value = '';
+      metodePay.value = '';
+      note.value = '';
+      backdrop.style.display = 'flex';
+      // allow small delay then add show class for animation
+      requestAnimationFrame(()=> modal.classList.add('show'));
+      // focus name
+      setTimeout(()=> custName.focus(), 220);
+    }
+
+    function closeModal(){
+      modal.classList.remove('show');
+      setTimeout(()=> backdrop.style.display='none', 220);
+    }
+
+    modalClose.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) closeModal(); });
+
+    // form submit
+    sendWa.addEventListener('click', ()=>{
+      const nama = custName.value.trim();
+      const kontak = custWa.value.trim();
+      const produk = prodName.value.trim();
+      const kategori = prodCat.value.trim();
+      const metode = metodePay.value.trim();
+      const catatan = note.value.trim();
+
+      if(!produk){ alert('Produk tidak terisi. Pilih produk dahulu.'); return; }
+      if(!kontak){ alert('Silakan isi nomor WhatsApp kamu.'); custWa.focus(); return; }
+      if(!metode){ alert('Silakan pilih metode pembayaran.'); metodePay.focus(); return; }
+
+      // normalize WA number: if starts with 0 -> replace with 62
+      let kontakNorm = kontak;
+      if(/^0\d+/.test(kontakNorm)) kontakNorm = '62' + kontakNorm.slice(1);
+      if(/^\+62/.test(kontakNorm)) kontakNorm = kontakNorm.replace('+','');
+
+      const lines = [];
+      lines.push('📦 *Order Baru - Renz Store*');
+      lines.push('');
+      lines.push('👤 *Nama:* ' + (nama || '-'));
+      lines.push('📞 *Kontak:* ' + kontakNorm);
+      lines.push('🛍️ *Kategori:* ' + kategori);
+      lines.push('🔖 *Produk:* ' + produk);
+      lines.push('💳 *Pembayaran:* ' + metode);
+      if(catatan) lines.push('📝 *Catatan:* ' + catatan);
+      lines.push('');
+      lines.push('🙏 Mohon konfirmasi ya, terima kasih.');
+
+      const pesan = lines.join('\n');
+      
+      
+      const waUrl = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(pesan);
+      window.open(waUrl, '_blank');
+      closeModal();
+    });
+  </script>
+</body>
 </html>
